@@ -6,6 +6,7 @@ import { setupTelegramHandlers } from "./src/telegram";
 import { setupDashboard } from "./src/dashboard";
 import { connectDB } from "./src/db";
 
+// Version: 1.2.0 - Fix deployment
 dotenv.config();
 
 const app = express();
