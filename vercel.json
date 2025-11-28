@@ -1,11 +1,5 @@
 {
   "version": 2,
-  "buildCommand": "npm install --legacy-peer-deps",
   "public": true,
-  "routes": [
-    {
-      "src": "/api/(.*)",
-      "dest": "/api/$1"
-    }
-  ]
+  "buildCommand": "npm install --legacy-peer-deps"
 }
