@@ -11,3 +11,5 @@ build/
 .firebaserc
 .runtimeconfig.json
 functions/lib/
+.vercel
+.env*.local
