@@ -3,6 +3,7 @@ import cors from "cors";
 import dotenv from "dotenv";
 import TelegramBot from "node-telegram-bot-api";
 import { setupTelegramHandlers } from "./src/telegram";
+import { setupDashboard } from "./src/dashboard";
 import { connectDB } from "./src/db";
 
 dotenv.config();
@@ -110,9 +111,13 @@ app.get("/", (req: Request, res: Response) => {
 
 // Initialize bot and start server
 initializeBot().then(() => {
+  // Setup dashboard
+  setupDashboard(app);
+
   app.listen(PORT, () => {
     console.log(`🚀 Servidor rodando na porta ${PORT}`);
     console.log(`📡 Webhook esperado em: ${process.env.WEBHOOK_URL || "http://localhost:" + PORT}/api/telegram`);
+    console.log(`📊 Dashboard em: http://localhost:${PORT}/dashboard?token=admin123`);
   });
 });
 
