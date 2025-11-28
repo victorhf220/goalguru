@@ -180,7 +180,16 @@ export async function setupTelegramHandlers(bot: any) {
         }
 
         try {
-          const useBasket = user.lastSport === "basketball";
+          // Determine sport: prefer saved preference, fall back to message hints
+          let useBasket = user.lastSport === "basketball";
+          const txtLower = (text || "").toLowerCase();
+          if (!user.lastSport) {
+            if (text.startsWith("🏀") || txtLower.includes("basket") || txtLower.includes("basquete")) {
+              useBasket = true;
+            } else if (text.startsWith("⚽") || txtLower.includes("fut") || txtLower.includes("football")) {
+              useBasket = false;
+            }
+          }
           const analysis = useBasket ? await analyzeBasketball(text) : await analyzeFootball(text);
 
           if (!user.vip) {
