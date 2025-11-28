@@ -114,6 +114,22 @@ export async function setupTelegramHandlers(bot: any) {
 
       if (text === "⚽ Futebol") {
         try {
+          const user = await getOrCreateUser(userId, msg.from!.first_name);
+          try {
+            if (typeof user.save === "function") {
+              user.lastSport = "football";
+              await user.save();
+              console.log("💾 saved lastSport=football for user", user.telegramId || user.telegramId);
+            } else {
+              // memory fallback
+              const key = String(userId);
+              user.lastSport = "football";
+              memoryUsers.set(key, user);
+            }
+          } catch (e) {
+            console.error("❌ erro salvando lastSport:", e?.toString?.() || e);
+          }
+
           const sent = await bot.sendMessage(chatId, "⚽ Digite: Time1 x Time2");
           console.log("📤 sendMessage Futebol OK", { chatId, message_id: sent?.message_id });
         } catch (err) {
@@ -124,6 +140,21 @@ export async function setupTelegramHandlers(bot: any) {
 
       if (text === "🏀 Basquete") {
         try {
+          const user = await getOrCreateUser(userId, msg.from!.first_name);
+          try {
+            if (typeof user.save === "function") {
+              user.lastSport = "basketball";
+              await user.save();
+              console.log("💾 saved lastSport=basketball for user", user.telegramId || user.telegramId);
+            } else {
+              const key = String(userId);
+              user.lastSport = "basketball";
+              memoryUsers.set(key, user);
+            }
+          } catch (e) {
+            console.error("❌ erro salvando lastSport:", e?.toString?.() || e);
+          }
+
           const sent = await bot.sendMessage(chatId, "🏀 Digite: Team1 x Team2");
           console.log("📤 sendMessage Basquete OK", { chatId, message_id: sent?.message_id });
         } catch (err) {
@@ -149,10 +180,22 @@ export async function setupTelegramHandlers(bot: any) {
         }
 
         try {
-          const analysis = await analyzeFootball(text);
+          const useBasket = user.lastSport === "basketball";
+          const analysis = useBasket ? await analyzeBasketball(text) : await analyzeFootball(text);
 
           if (!user.vip) {
             user.credits -= 1;
+            try {
+              if (typeof user.save === "function") {
+                await user.save();
+                console.log("💾 user credits decremented and saved", { telegramId: user.telegramId });
+              } else {
+                const key = String(userId);
+                memoryUsers.set(key, user);
+              }
+            } catch (e) {
+              console.error("❌ erro salvando credits:", e?.toString?.() || e);
+            }
           }
 
           if (statusMsg) {
