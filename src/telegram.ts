@@ -54,11 +54,16 @@ export async function setupTelegramHandlers(bot: any) {
         }
       };
 
-      await bot.sendMessage(
-        chatId,
-        `Olá ${firstName}! 👋\n\nSou o Bot GoalGuru.\n\nEscolha uma opção:`,
-        keyboard
-      );
+      try {
+        const sent = await bot.sendMessage(
+          chatId,
+          `Olá ${firstName}! 👋\n\nSou o Bot GoalGuru.\n\nEscolha uma opção:`,
+          keyboard
+        );
+        console.log("📤 sendMessage OK", { chatId, message_id: sent?.message_id });
+      } catch (err) {
+        console.error("❌ sendMessage /start erro:", err?.toString?.() || err);
+      }
     } catch (err) {
       console.error("Erro em /start:", err);
       await bot.sendMessage(chatId, "❌ Erro ao processar");
@@ -75,30 +80,55 @@ export async function setupTelegramHandlers(bot: any) {
     try {
       if (text === "💰 Saldo") {
         const user = await getOrCreateUser(userId, msg.from!.first_name);
-        await bot.sendMessage(
-          chatId,
-          `💰 Saldo: ${user.credits} créditos\n${user.vip ? "⭐ VIP" : "sem VIP"}`
-        );
+        try {
+          const sent = await bot.sendMessage(
+            chatId,
+            `💰 Saldo: ${user.credits} créditos\n${user.vip ? "⭐ VIP" : "sem VIP"}`
+          );
+          console.log("📤 sendMessage Saldo OK", { chatId, message_id: sent?.message_id });
+        } catch (err) {
+          console.error("❌ sendMessage Saldo erro:", err?.toString?.() || err);
+        }
         return;
       }
 
       if (text === "⭐ VIP") {
-        await bot.sendMessage(chatId, "⭐ VIP: R$ 9,90/mês");
+        try {
+          const sent = await bot.sendMessage(chatId, "⭐ VIP: R$ 9,90/mês");
+          console.log("📤 sendMessage VIP OK", { chatId, message_id: sent?.message_id });
+        } catch (err) {
+          console.error("❌ sendMessage VIP erro:", err?.toString?.() || err);
+        }
         return;
       }
 
       if (text === "🛒 Comprar Créditos") {
-        await bot.sendMessage(chatId, "🛒 50 créditos por R$ 19,90");
+        try {
+          const sent = await bot.sendMessage(chatId, "🛒 50 créditos por R$ 19,90");
+          console.log("📤 sendMessage Comprar OK", { chatId, message_id: sent?.message_id });
+        } catch (err) {
+          console.error("❌ sendMessage Comprar erro:", err?.toString?.() || err);
+        }
         return;
       }
 
       if (text === "⚽ Futebol") {
-        await bot.sendMessage(chatId, "⚽ Digite: Time1 x Time2");
+        try {
+          const sent = await bot.sendMessage(chatId, "⚽ Digite: Time1 x Time2");
+          console.log("📤 sendMessage Futebol OK", { chatId, message_id: sent?.message_id });
+        } catch (err) {
+          console.error("❌ sendMessage Futebol erro:", err?.toString?.() || err);
+        }
         return;
       }
 
       if (text === "🏀 Basquete") {
-        await bot.sendMessage(chatId, "🏀 Digite: Team1 x Team2");
+        try {
+          const sent = await bot.sendMessage(chatId, "🏀 Digite: Team1 x Team2");
+          console.log("📤 sendMessage Basquete OK", { chatId, message_id: sent?.message_id });
+        } catch (err) {
+          console.error("❌ sendMessage Basquete erro:", err?.toString?.() || err);
+        }
         return;
       }
 
@@ -110,24 +140,50 @@ export async function setupTelegramHandlers(bot: any) {
           return;
         }
 
-        const statusMsg = await bot.sendMessage(chatId, "⚙️ Analisando...");
+        let statusMsg: any = null;
+        try {
+          statusMsg = await bot.sendMessage(chatId, "⚙️ Analisando...");
+          console.log("📤 sendMessage Analisando OK", { chatId, message_id: statusMsg?.message_id });
+        } catch (err) {
+          console.error("❌ sendMessage Analisando erro:", err?.toString?.() || err);
+        }
 
         try {
           const analysis = await analyzeFootball(text);
-          
+
           if (!user.vip) {
             user.credits -= 1;
           }
 
-          await bot.editMessageText(analysis, {
-            chat_id: chatId,
-            message_id: statusMsg.message_id
-          });
+          if (statusMsg) {
+            try {
+              const edited = await bot.editMessageText(analysis, {
+                chat_id: chatId,
+                message_id: statusMsg.message_id
+              });
+              console.log("🔧 editMessageText OK", { chatId, edited });
+            } catch (err) {
+              console.error("❌ editMessageText erro:", err?.toString?.() || err);
+              await bot.sendMessage(chatId, analysis);
+            }
+          } else {
+            await bot.sendMessage(chatId, analysis);
+          }
         } catch (err) {
-          await bot.editMessageText("❌ Erro", {
-            chat_id: chatId,
-            message_id: statusMsg.message_id
-          });
+          console.error("❌ analysis erro:", err?.toString?.() || err);
+          if (statusMsg) {
+            try {
+              await bot.editMessageText("❌ Erro", {
+                chat_id: chatId,
+                message_id: statusMsg.message_id
+              });
+            } catch (e) {
+              console.error("❌ editMessageText fallback erro:", e?.toString?.() || e);
+              await bot.sendMessage(chatId, "❌ Erro ao analisar");
+            }
+          } else {
+            await bot.sendMessage(chatId, "❌ Erro ao analisar");
+          }
         }
         return;
       }
