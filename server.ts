@@ -6,7 +6,7 @@ import { setupTelegramHandlers } from "./src/telegram";
 import { setupDashboard } from "./src/dashboard";
 import { connectDB } from "./src/db";
 
-// Version: 1.3.0 - Fix deployment protection bypass
+// Version: 1.4.0 - Simplify bot flow with inline keyboards
 dotenv.config();
 
 const app = express();
