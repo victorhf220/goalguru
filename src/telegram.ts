@@ -244,5 +244,54 @@ export async function setupTelegramHandlers(bot: any) {
     }
   });
 
+  // callback_query handler for inline keyboard actions
+  bot.on("callback_query", async (cq: any) => {
+    try {
+      const data: string = cq.data;
+      const from = cq.from;
+      const chatId = cq.message?.chat?.id || cq.message?.chat_id || from.id;
+
+      await bot.answerCallbackQuery(cq.id).catch(() => null);
+
+      const user = await getOrCreateUser(String(from.id), from.first_name || "");
+
+      if (data && data.startsWith("sport:")) {
+        const sport = data.split(":")[1];
+        try {
+          if (typeof user.save === "function") {
+            user.lastSport = sport === "basketball" ? "basketball" : "football";
+            await user.save();
+          } else {
+            const key = String(from.id);
+            user.lastSport = sport === "basketball" ? "basketball" : "football";
+            memoryUsers.set(key, user);
+          }
+        } catch (e) {
+          console.error("❌ erro salvando lastSport (callback):", e?.toString?.() || e);
+        }
+
+        await bot.sendMessage(chatId, sport === "basketball" ? "🏀 Digite: Team1 x Team2" : "⚽ Digite: Time1 x Time2");
+        return;
+      }
+
+      if (data === "action:saldo") {
+        await bot.sendMessage(chatId, `💰 Saldo: ${user.credits || 0} créditos\n${user.vip ? "⭐ VIP" : "sem VIP"}`);
+        return;
+      }
+
+      if (data === "action:vip") {
+        await bot.sendMessage(chatId, "⭐ VIP: R$ 9,90/mês");
+        return;
+      }
+
+      if (data === "action:buy") {
+        await bot.sendMessage(chatId, "🛒 50 créditos por R$ 19,90");
+        return;
+      }
+    } catch (err) {
+      console.error("Erro em callback_query:", err);
+    }
+  });
+
   console.log("✅ Bot handlers OK");
 }
