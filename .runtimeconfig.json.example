@@ -1,0 +1,14 @@
+{
+  "telegram": {
+    "token": "seu_token_do_botfather_aqui"
+  },
+  "mercado_pago": {
+    "access_token": "seu_access_token_mercado_pago"
+  },
+  "api_football": {
+    "key": "sua_chave_api_football"
+  },
+  "app": {
+    "base_url": "https://us-central1-seu-projeto.cloudfunctions.net"
+  }
+}

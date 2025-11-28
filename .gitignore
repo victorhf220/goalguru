@@ -1,0 +1,13 @@
+node_modules/
+lib/
+dist/
+build/
+.env
+.env.local
+.env.*.local
+.DS_Store
+*.log
+.firebase/
+.firebaserc
+.runtimeconfig.json
+functions/lib/
