@@ -65,18 +65,41 @@ app.post("/api/register-webhook", async (req: Request, res: Response) => {
       return res.status(500).json({ error: "Bot not initialized" });
     }
 
-    const webhookUrl = process.env.WEBHOOK_URL || `${process.env.VERCEL_URL}/api/telegram`;
+    const webhookUrl = process.env.WEBHOOK_URL || `${process.env.VERCEL_URL || "https://seu-dominio.vercel.app"}/api/telegram`;
     
-    if (!webhookUrl) {
-      return res.status(400).json({ error: "WEBHOOK_URL not configured" });
+    if (!webhookUrl || webhookUrl.includes("seu-dominio")) {
+      return res.status(400).json({ 
+        error: "WEBHOOK_URL not configured",
+        hint: "Configure a variável WEBHOOK_URL no Vercel"
+      });
     }
 
     await bot.setWebHook(webhookUrl);
     console.log(`✅ Webhook registrado: ${webhookUrl}`);
-    res.status(200).json({ success: true, webhook_url: webhookUrl });
+    res.status(200).json({ 
+      success: true, 
+      webhook_url: webhookUrl,
+      message: "Webhook registrado com sucesso! 🎉"
+    });
   } catch (err: any) {
     console.error("Erro ao registrar webhook:", err);
     res.status(500).json({ error: err.message });
+  }
+});
+
+// Setup inicial (sem proteção)
+app.get("/setup", async (req: Request, res: Response) => {
+  try {
+    if (!bot) {
+      return res.status(500).send("Bot not initialized");
+    }
+
+    const webhookUrl = process.env.WEBHOOK_URL || `${process.env.VERCEL_URL || "https://seu-dominio.vercel.app"}/api/telegram`;
+    await bot.setWebHook(webhookUrl);
+    
+    res.send(`<h1>✅ Webhook registrado!</h1><p>URL: ${webhookUrl}</p>`);
+  } catch (err: any) {
+    res.send(`<h1>❌ Erro</h1><p>${err.message}</p>`);
   }
 });
 
