@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "buildCommand": "npm install",
+  "buildCommand": "npm install --legacy-peer-deps",
   "env": {
     "TELEGRAM_TOKEN": "@telegram_token",
     "MERCADO_PAGO_ACCESS_TOKEN": "@mercado_pago_token",
