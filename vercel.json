@@ -1,0 +1,14 @@
+{
+  "version": 2,
+  "buildCommand": "npm install --legacy-peer-deps && npm run build",
+  "outputDirectory": ".next",
+  "env": {
+    "TELEGRAM_TOKEN": "@telegram_token",
+    "MERCADO_PAGO_ACCESS_TOKEN": "@mercado_pago_token",
+    "API_FOOTBALL_KEY": "@api_football_key",
+    "MONGODB_URI": "@mongodb_uri",
+    "WEBHOOK_URL": "@webhook_url",
+    "ADMIN_PASSWORD": "@admin_password",
+    "VERCEL_URL": "@vercel_url"
+  }
+}
