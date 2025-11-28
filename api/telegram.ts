@@ -2,7 +2,7 @@ import { VercelRequest, VercelResponse } from "@vercel/node";
 import TelegramBot from "node-telegram-bot-api";
 import { setupTelegramHandlers } from "../src/telegram";
 
-let bot: TelegramBot | null = null;
+let bot: any | null = null;
 
 async function initializeBot() {
   if (bot) return bot;
@@ -35,7 +35,7 @@ export default async (req: VercelRequest, res: VercelResponse) => {
     }
 
     // Inicializar bot se necessário
-    const telegramBot = await initializeBot();
+    const telegramBot: any = await initializeBot();
     if (!telegramBot) {
       return res.status(500).json({ error: "Bot not initialized" });
     }

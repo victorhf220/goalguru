@@ -33,7 +33,7 @@ async function getOrCreateUser(userId: string, firstName: string, lastName: stri
   }
 }
 
-export async function setupTelegramHandlers(bot: TelegramBot) {
+export async function setupTelegramHandlers(bot: any) {
   bot.onText(/\/start/, async (msg: any) => {
     const userId = msg.from!.id;
     const firstName = msg.from!.first_name;

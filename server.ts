@@ -32,7 +32,7 @@ connectDB().catch((err) => {
 });
 
 // Initialize Telegram Bot
-let bot: TelegramBot | null = null;
+let bot: any | null = null;
 
 async function initializeBot() {
   const token = process.env.TELEGRAM_TOKEN;
