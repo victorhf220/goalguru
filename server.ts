@@ -6,11 +6,20 @@ import { setupTelegramHandlers } from "./src/telegram";
 import { setupDashboard } from "./src/dashboard";
 import { connectDB } from "./src/db";
 
-// Version: 1.2.0 - Fix deployment
+// Version: 1.3.0 - Fix deployment protection bypass
 dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+// Bypass Vercel deployment protection for public endpoints
+const bypassProtectionToken = process.env.VERCEL_PROTECTION_BYPASS;
+if (bypassProtectionToken) {
+  app.use((req: Request, res: Response, next) => {
+    res.setHeader('x-vercel-protection-bypass', bypassProtectionToken);
+    next();
+  });
+}
 
 // Middleware
 app.use(cors());
