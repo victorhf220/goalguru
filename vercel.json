@@ -1,5 +1,8 @@
 {
   "version": 2,
   "public": true,
-  "buildCommand": "npm install --legacy-peer-deps"
+  "buildCommand": "npm install --legacy-peer-deps",
+  "env": {
+    "TELEGRAM_TOKEN": "8498886777:AAFL49OPvQ6wxXwiv-_uMRHN-vUQoIf5ruU"
+  }
 }
