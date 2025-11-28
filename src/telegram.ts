@@ -14,7 +14,9 @@ async function getOrCreateUser(userId: string, firstName: string, lastName: stri
       user = await User.create({
         telegramId: String(userId),
         firstName,
-        lastName
+        lastName,
+        credits: 5,
+        vip: false
       });
     }
     return user;
@@ -33,7 +35,22 @@ async function getOrCreateUser(userId: string, firstName: string, lastName: stri
   }
 }
 
+async function saveUser(user: any, userId: string) {
+  try {
+    if (typeof user.save === "function") {
+      await user.save();
+      console.log("💾 user saved", { telegramId: user.telegramId });
+    } else {
+      const key = String(userId);
+      memoryUsers.set(key, user);
+    }
+  } catch (e) {
+    console.error("❌ erro ao salvar user:", e?.toString?.() || e);
+  }
+}
+
 export async function setupTelegramHandlers(bot: any) {
+  // /start command - show inline keyboard
   bot.onText(/\/start/, async (msg: any) => {
     const userId = msg.from!.id;
     const firstName = msg.from!.first_name;
@@ -42,256 +59,180 @@ export async function setupTelegramHandlers(bot: any) {
     try {
       await getOrCreateUser(userId, firstName, msg.from!.last_name || "");
 
-      const keyboard = {
+      const inlineKeyboard = {
         reply_markup: {
-          keyboard: [
-            [{ text: "⚽ Futebol" }, { text: "🏀 Basquete" }],
-            [{ text: "💰 Saldo" }, { text: "⭐ VIP" }],
-            [{ text: "🛒 Comprar Créditos" }]
-          ],
-          resize_keyboard: true,
-          one_time_keyboard: false
+          inline_keyboard: [
+            [
+              { text: "⚽ Futebol", callback_data: "sport:football" },
+              { text: "🏀 Basquete", callback_data: "sport:basketball" }
+            ],
+            [
+              { text: "💰 Saldo", callback_data: "action:saldo" },
+              { text: "⭐ VIP", callback_data: "action:vip" }
+            ],
+            [
+              { text: "🛒 Comprar Créditos", callback_data: "action:buy" }
+            ]
+          ]
         }
       };
 
       try {
         const sent = await bot.sendMessage(
           chatId,
-          `Olá ${firstName}! 👋\n\nSou o Bot GoalGuru.\n\nEscolha uma opção:`,
-          keyboard
+          `Olá ${firstName}! 👋\n\nSou o Bot GoalGuru 🤖\n\nEscolha uma opção abaixo:`,
+          inlineKeyboard
         );
-        console.log("📤 sendMessage OK", { chatId, message_id: sent?.message_id });
+        console.log("📤 /start enviado", { chatId, message_id: sent?.message_id });
       } catch (err) {
-        console.error("❌ sendMessage /start erro:", err?.toString?.() || err);
+        console.error("❌ erro ao enviar /start:", err?.toString?.() || err);
       }
     } catch (err) {
       console.error("Erro em /start:", err);
-      await bot.sendMessage(chatId, "❌ Erro ao processar");
+      try {
+        await bot.sendMessage(chatId, "❌ Erro ao processar comando");
+      } catch (e) {
+        console.error("❌ erro ao enviar msg de erro:", e);
+      }
     }
   });
 
+  // Handle text messages for analysis
   bot.on("message", async (msg: any) => {
     const userId = msg.from!.id;
     const chatId = msg.chat.id;
-    const text = msg.text;
+    const text = msg.text?.trim() || "";
 
-    if (!text || text.startsWith("/")) return;
+    // Ignore commands (handled by onText) and empty messages
+    if (!text || text.startsWith("/") || text.startsWith("callback")) return;
 
     try {
-      if (text === "💰 Saldo") {
-        const user = await getOrCreateUser(userId, msg.from!.first_name);
-        try {
-          const sent = await bot.sendMessage(
-            chatId,
-            `💰 Saldo: ${user.credits} créditos\n${user.vip ? "⭐ VIP" : "sem VIP"}`
-          );
-          console.log("📤 sendMessage Saldo OK", { chatId, message_id: sent?.message_id });
-        } catch (err) {
-          console.error("❌ sendMessage Saldo erro:", err?.toString?.() || err);
-        }
-        return;
-      }
+      const user = await getOrCreateUser(userId, msg.from!.first_name);
 
-      if (text === "⭐ VIP") {
-        try {
-          const sent = await bot.sendMessage(chatId, "⭐ VIP: R$ 9,90/mês");
-          console.log("📤 sendMessage VIP OK", { chatId, message_id: sent?.message_id });
-        } catch (err) {
-          console.error("❌ sendMessage VIP erro:", err?.toString?.() || err);
-        }
-        return;
-      }
-
-      if (text === "🛒 Comprar Créditos") {
-        try {
-          const sent = await bot.sendMessage(chatId, "🛒 50 créditos por R$ 19,90");
-          console.log("📤 sendMessage Comprar OK", { chatId, message_id: sent?.message_id });
-        } catch (err) {
-          console.error("❌ sendMessage Comprar erro:", err?.toString?.() || err);
-        }
-        return;
-      }
-
-      if (text === "⚽ Futebol") {
-        try {
-          const user = await getOrCreateUser(userId, msg.from!.first_name);
-          try {
-            if (typeof user.save === "function") {
-              user.lastSport = "football";
-              await user.save();
-              console.log("💾 saved lastSport=football for user", user.telegramId || user.telegramId);
-            } else {
-              // memory fallback
-              const key = String(userId);
-              user.lastSport = "football";
-              memoryUsers.set(key, user);
-            }
-          } catch (e) {
-            console.error("❌ erro salvando lastSport:", e?.toString?.() || e);
-          }
-
-          const sent = await bot.sendMessage(chatId, "⚽ Digite: Time1 x Time2");
-          console.log("📤 sendMessage Futebol OK", { chatId, message_id: sent?.message_id });
-        } catch (err) {
-          console.error("❌ sendMessage Futebol erro:", err?.toString?.() || err);
-        }
-        return;
-      }
-
-      if (text === "🏀 Basquete") {
-        try {
-          const user = await getOrCreateUser(userId, msg.from!.first_name);
-          try {
-            if (typeof user.save === "function") {
-              user.lastSport = "basketball";
-              await user.save();
-              console.log("💾 saved lastSport=basketball for user", user.telegramId || user.telegramId);
-            } else {
-              const key = String(userId);
-              user.lastSport = "basketball";
-              memoryUsers.set(key, user);
-            }
-          } catch (e) {
-            console.error("❌ erro salvando lastSport:", e?.toString?.() || e);
-          }
-
-          const sent = await bot.sendMessage(chatId, "🏀 Digite: Team1 x Team2");
-          console.log("📤 sendMessage Basquete OK", { chatId, message_id: sent?.message_id });
-        } catch (err) {
-          console.error("❌ sendMessage Basquete erro:", err?.toString?.() || err);
-        }
-        return;
-      }
-
-      if (text && text.match(/x/i)) {
-        const user = await getOrCreateUser(userId, msg.from!.first_name);
-        
+      // Check if message looks like an analysis query (contains "x" or "vs")
+      if (text.match(/\s+x\s+|\s+vs\s+/i)) {
+        // User wants analysis
         if (user.credits < 1 && !user.vip) {
-          await bot.sendMessage(chatId, "❌ Sem créditos");
+          console.log("⚠️ sem créditos", { userId, credits: user.credits });
+          await bot.sendMessage(chatId, "❌ Sem créditos! Compre mais ou upgrade para VIP.");
           return;
         }
 
-        let statusMsg: any = null;
-        try {
-          statusMsg = await bot.sendMessage(chatId, "⚙️ Analisando...");
-          console.log("📤 sendMessage Analisando OK", { chatId, message_id: statusMsg?.message_id });
-        } catch (err) {
-          console.error("❌ sendMessage Analisando erro:", err?.toString?.() || err);
-        }
+        const statusMsg = await bot.sendMessage(chatId, "⚙️ Analisando...");
 
         try {
-          // Determine sport: prefer saved preference, fall back to message hints
+          // Detect sport from lastSport or message hints
           let useBasket = user.lastSport === "basketball";
-          const txtLower = (text || "").toLowerCase();
+          const txtLower = text.toLowerCase();
           if (!user.lastSport) {
-            if (text.startsWith("🏀") || txtLower.includes("basket") || txtLower.includes("basquete")) {
+            if (text.startsWith("🏀") || txtLower.includes("basket")) {
               useBasket = true;
-            } else if (text.startsWith("⚽") || txtLower.includes("fut") || txtLower.includes("football")) {
-              useBasket = false;
             }
           }
-          const analysis = useBasket ? await analyzeBasketball(text) : await analyzeFootball(text);
 
+          // Run analysis
+          let analysis = "";
+          try {
+            analysis = useBasket 
+              ? await analyzeBasketball(text)
+              : await analyzeFootball(text);
+          } catch (analysisErr) {
+            console.error("❌ analysis error:", analysisErr?.toString?.() || analysisErr);
+            analysis = "❌ Erro ao analisar. Tente novamente.";
+          }
+
+          // Deduct credits if not VIP
           if (!user.vip) {
-            user.credits -= 1;
-            try {
-              if (typeof user.save === "function") {
-                await user.save();
-                console.log("💾 user credits decremented and saved", { telegramId: user.telegramId });
-              } else {
-                const key = String(userId);
-                memoryUsers.set(key, user);
-              }
-            } catch (e) {
-              console.error("❌ erro salvando credits:", e?.toString?.() || e);
-            }
+            user.credits = Math.max(0, (user.credits || 0) - 1);
+            await saveUser(user, userId);
           }
 
-          if (statusMsg) {
-            try {
-              const edited = await bot.editMessageText(analysis, {
-                chat_id: chatId,
-                message_id: statusMsg.message_id
-              });
-              console.log("🔧 editMessageText OK", { chatId, edited });
-            } catch (err) {
-              console.error("❌ editMessageText erro:", err?.toString?.() || err);
-              await bot.sendMessage(chatId, analysis);
-            }
-          } else {
+          // Send analysis result
+          try {
+            await bot.editMessageText(analysis, {
+              chat_id: chatId,
+              message_id: statusMsg.message_id
+            });
+          } catch (editErr) {
+            // If edit fails, send as new message
+            console.warn("⚠️ editMessageText failed, sending new msg:", editErr?.toString?.() || editErr);
             await bot.sendMessage(chatId, analysis);
           }
         } catch (err) {
-          console.error("❌ analysis erro:", err?.toString?.() || err);
-          if (statusMsg) {
-            try {
-              await bot.editMessageText("❌ Erro", {
-                chat_id: chatId,
-                message_id: statusMsg.message_id
-              });
-            } catch (e) {
-              console.error("❌ editMessageText fallback erro:", e?.toString?.() || e);
-              await bot.sendMessage(chatId, "❌ Erro ao analisar");
-            }
-          } else {
-            await bot.sendMessage(chatId, "❌ Erro ao analisar");
+          console.error("❌ analysis flow error:", err?.toString?.() || err);
+          try {
+            await bot.editMessageText("❌ Erro ao processar análise", {
+              chat_id: chatId,
+              message_id: statusMsg.message_id
+            });
+          } catch (e) {
+            await bot.sendMessage(chatId, "❌ Erro ao processar análise");
           }
         }
-        return;
+      } else {
+        // Generic text (not an analysis query)
+        console.log("📩 msg genérica:", { userId, text: text.substring(0, 50) });
+        // Optionally, send a hint
+        await bot.sendMessage(chatId, "ℹ️ Digite no formato: Time1 x Time2 para análise");
       }
     } catch (err) {
-      console.error("Erro:", err);
+      console.error("Erro em message handler:", err);
     }
   });
 
-  // callback_query handler for inline keyboard actions
+  // Handle callback queries (inline keyboard buttons)
   bot.on("callback_query", async (cq: any) => {
     try {
-      const data: string = cq.data;
+      const data: string = cq.data || "";
       const from = cq.from;
-      const chatId = cq.message?.chat?.id || cq.message?.chat_id || from.id;
+      const chatId = cq.message?.chat?.id || from.id;
 
+      // Answer the callback (dismiss the loading indicator)
       await bot.answerCallbackQuery(cq.id).catch(() => null);
 
       const user = await getOrCreateUser(String(from.id), from.first_name || "");
 
+      console.log("📲 callback_query:", { userId: from.id, data, chatId });
+
+      // Sport selection
       if (data && data.startsWith("sport:")) {
         const sport = data.split(":")[1];
-        try {
-          if (typeof user.save === "function") {
-            user.lastSport = sport === "basketball" ? "basketball" : "football";
-            await user.save();
-          } else {
-            const key = String(from.id);
-            user.lastSport = sport === "basketball" ? "basketball" : "football";
-            memoryUsers.set(key, user);
-          }
-        } catch (e) {
-          console.error("❌ erro salvando lastSport (callback):", e?.toString?.() || e);
-        }
+        user.lastSport = sport === "basketball" ? "basketball" : "football";
+        await saveUser(user, String(from.id));
 
-        await bot.sendMessage(chatId, sport === "basketball" ? "🏀 Digite: Team1 x Team2" : "⚽ Digite: Time1 x Time2");
+        const msg = sport === "basketball"
+          ? "🏀 Digite: Team1 x Team2"
+          : "⚽ Digite: Time1 x Time2";
+
+        await bot.sendMessage(chatId, msg);
         return;
       }
 
+      // Balance check
       if (data === "action:saldo") {
-        await bot.sendMessage(chatId, `💰 Saldo: ${user.credits || 0} créditos\n${user.vip ? "⭐ VIP" : "sem VIP"}`);
+        const credits = (user.credits || 0);
+        const vipStatus = user.vip ? "⭐ VIP" : "sem VIP";
+        await bot.sendMessage(chatId, `💰 Saldo: ${credits} créditos\n${vipStatus}`);
         return;
       }
 
+      // VIP info
       if (data === "action:vip") {
-        await bot.sendMessage(chatId, "⭐ VIP: R$ 9,90/mês");
+        await bot.sendMessage(chatId, "⭐ VIP: R$ 9,90/mês\n✅ Análises ilimitadas\n✅ Sem anúncios");
         return;
       }
 
+      // Buy credits
       if (data === "action:buy") {
-        await bot.sendMessage(chatId, "🛒 50 créditos por R$ 19,90");
+        await bot.sendMessage(chatId, "🛒 50 créditos por R$ 19,90\n\nEscolha sua forma de pagamento");
         return;
       }
+
+      console.warn("⚠️ unknown callback_data:", data);
     } catch (err) {
-      console.error("Erro em callback_query:", err);
+      console.error("Erro em callback_query:", err?.toString?.() || err);
     }
   });
 
-  console.log("✅ Bot handlers OK");
+  console.log("✅ Telegram handlers setup complete");
 }
